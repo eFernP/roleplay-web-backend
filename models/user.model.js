@@ -10,6 +10,7 @@ const user = (sequelize, Sequelize) => {
         validate: {
           max: 50,
         },
+        unique: true,
       },
       email: {
         allowNull: false,
@@ -18,6 +19,7 @@ const user = (sequelize, Sequelize) => {
           isEmail: true,
           max: 255,
         },
+        unique: true,
       },
       password: {
         allowNull: false,

@@ -23,12 +23,22 @@ exports.createUser = (req, res) => {
   if (error) return res.status(400).send(error.details[0].message);
 
   //find an existing user
-  User.findOne({ where: { email: req.body.email } })
+  User.findOne({
+    where: { [Op.or]: [{ email: req.body.email }, { name: req.body.name }] },
+  })
     .then(async (data) => {
       console.log("data FIND ONE", data);
       if (data) {
-        return res.status(400).send({ message: "User already registered." });
+        const previousUser = data.dataValues;
+        if (previousUser.name === req.body.name) {
+          return res
+            .status(400)
+            .send({ message: "User name already registered." });
+        } else {
+          return res.status(400).send({ message: "Email already registered." });
+        }
       } else {
+        //QUE NO ESTÉ TAMPOCO EL NOMBRE DE USUARIO YA
         user = {
           name: req.body.name,
           password: req.body.password,
