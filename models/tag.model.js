@@ -1,3 +1,5 @@
+const Joi = require("joi");
+
 const tag = (sequelize, Sequelize) => {
   const Tag = sequelize.define("tag", {
     name: {
@@ -12,12 +14,12 @@ const tag = (sequelize, Sequelize) => {
   return Tag;
 };
 
-const validateTag = (tag) => {
+const validateModel = (model) => {
   const schema = {
     name: Joi.string().max(50).required(),
   };
-  return Joi.validate(tag, schema);
+  return Joi.validate(model, schema);
 };
 
 exports.tag = tag;
-exports.validate = validateTag;
+exports.validate = validateModel;

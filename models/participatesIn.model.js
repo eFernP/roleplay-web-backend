@@ -1,10 +1,10 @@
 const Joi = require("joi");
 
-const hasTag = (sequelize, Sequelize) => {
-  const HasTag = sequelize.define(
-    "hasTag",
+const participatesIn = (sequelize, Sequelize) => {
+  const ParticipatesIn = sequelize.define(
+    "participatesIn",
     {
-      roleplay: {
+      user: {
         allowNull: false,
         type: Sequelize.INTEGER,
         references: {
@@ -12,7 +12,7 @@ const hasTag = (sequelize, Sequelize) => {
           key: "id",
         },
       },
-      tag: {
+      roleplay: {
         allowNull: false,
         type: Sequelize.INTEGER,
         references: {
@@ -20,19 +20,24 @@ const hasTag = (sequelize, Sequelize) => {
           key: "id",
         },
       },
+      isMaster: {
+        type: Sequelize.BOOLEAN,
+        defaultValue: false,
+      },
     },
     { freezeTableName: true }
   );
-  return HasTag;
+  return ParticipatesIn;
 };
 
 const validateModel = (model) => {
   const schema = {
+    user: Joi.number().required(),
     roleplay: Joi.number().required(),
-    tag: Joi.number().required(),
+    isMaster: Joi.boolean(),
   };
   return Joi.validate(model, schema);
 };
 
-exports.hasTag = hasTag;
+exports.participatesIn = participatesIn;
 exports.validate = validateModel;

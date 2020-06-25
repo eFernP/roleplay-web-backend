@@ -38,15 +38,15 @@ const user = (sequelize, Sequelize) => {
   return User;
 };
 
-const validateUser = (user) => {
+const validateModel = (model) => {
   const schema = {
-    name: Joi.string().min(3).max(50).required(),
+    name: Joi.string().max(50).required(),
     email: Joi.string().min(5).max(255).required().email(),
     password: Joi.string().min(3).max(255).required(),
   };
 
-  return Joi.validate(user, schema);
+  return Joi.validate(model, schema);
 };
 
 exports.user = user;
-exports.validate = validateUser;
+exports.validate = validateModel;

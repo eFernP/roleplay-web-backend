@@ -9,7 +9,7 @@ const roleplay = (sequelize, Sequelize) => {
       allowNull: false,
       type: Sequelize.STRING,
       validate: {
-        max: 100,
+        max: 50,
       },
       unique: true,
     },
@@ -38,16 +38,18 @@ const roleplay = (sequelize, Sequelize) => {
     creator: {
       allowNull: false,
       type: Sequelize.INTEGER,
-      references: "users",
-      referencesKey: "id",
+      references: {
+        model: "users",
+        key: "id",
+      },
     },
   });
   return Roleplay;
 };
 
-const validateRoleplay = (roleplay) => {
+const validateModel = (model) => {
   const schema = {
-    title: Joi.string().max(100).required(),
+    title: Joi.string().max(50).required(),
     description: Joi.string().max(2000).required(),
     type: Joi.string()
       .valid(...ROLE_TYPES)
@@ -57,8 +59,8 @@ const validateRoleplay = (roleplay) => {
     creator: Joi.number().required(),
   };
 
-  return Joi.validate(roleplay, schema);
+  return Joi.validate(model, schema);
 };
 
 exports.roleplay = roleplay;
-exports.validate = validateRoleplay;
+exports.validate = validateModel;

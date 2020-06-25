@@ -1,5 +1,6 @@
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const { Op } = require("sequelize");
 const { db } = require("../models");
 const User = db.users;
 const validate = db.validateUser;
@@ -20,14 +21,13 @@ exports.getUser = (req, res) => {
 
 exports.createUser = (req, res) => {
   const { error } = validate(req.body);
-  if (error) return res.status(400).send(error.details[0].message);
+  if (error) return res.status(400).send({ message: error.details[0].message });
 
   //find an existing user
   User.findOne({
     where: { [Op.or]: [{ email: req.body.email }, { name: req.body.name }] },
   })
     .then(async (data) => {
-      console.log("data FIND ONE", data);
       if (data) {
         const previousUser = data.dataValues;
         if (previousUser.name === req.body.name) {
@@ -38,7 +38,6 @@ exports.createUser = (req, res) => {
           return res.status(400).send({ message: "Email already registered." });
         }
       } else {
-        //QUE NO ESTÉ TAMPOCO EL NOMBRE DE USUARIO YA
         user = {
           name: req.body.name,
           password: req.body.password,
@@ -51,9 +50,12 @@ exports.createUser = (req, res) => {
             delete data["password"];
             const token = generateAuthToken(data);
             return res.header("x-auth-token", token).send({
-              id: data.id,
-              name: data.name,
-              email: data.email,
+              message: "User added correctly",
+              user: {
+                id: data.id,
+                name: data.name,
+                email: data.email,
+              },
             });
           })
           .catch((err) => {
@@ -77,7 +79,6 @@ exports.loginUser = (req, res) => {
   //find an existing user
   User.findOne({ where: { email } })
     .then(async (data) => {
-      console.log("data FIND ONE", data);
       if (!data) {
         return res.status(400).send({
           err: {
@@ -86,7 +87,6 @@ exports.loginUser = (req, res) => {
         });
       } else {
         const user = data.dataValues;
-        console.log("DATA", user);
         if (!bcrypt.compareSync(password, user.password)) {
           return res.status(400).json({
             err: {
