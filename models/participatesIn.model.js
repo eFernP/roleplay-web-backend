@@ -11,6 +11,7 @@ const participatesIn = (sequelize, Sequelize) => {
           model: "roleplays",
           key: "id",
         },
+        unique: "compositeKey",
       },
       roleplay: {
         allowNull: false,
@@ -19,6 +20,7 @@ const participatesIn = (sequelize, Sequelize) => {
           model: "tags",
           key: "id",
         },
+        unique: "compositeKey",
       },
       isMaster: {
         type: Sequelize.BOOLEAN,

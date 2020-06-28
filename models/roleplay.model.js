@@ -1,8 +1,6 @@
 const Joi = require("joi");
 const { ROLE_TYPES } = require("../constants");
 
-console.log("role types", ROLE_TYPES);
-
 const roleplay = (sequelize, Sequelize) => {
   const Roleplay = sequelize.define("roleplay", {
     title: {

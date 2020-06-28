@@ -1,10 +1,11 @@
 const bodyParser = require("body-parser");
+const express = require("express");
 
 require("dotenv").config();
 
 const { db } = require("./models");
-const usersRoute = require("./routes/user.route");
-const express = require("express");
+const userRoute = require("./routes/user.route");
+const roleplayRoute = require("./routes/roleplay.route");
 
 const app = express();
 
@@ -23,7 +24,8 @@ app.use(bodyParser.urlencoded({ extended: true }));
 db.sequelize.sync();
 
 //use users route for api/users
-app.use("/api/users", usersRoute);
+app.use("/api/users", userRoute);
+app.use("/api/roleplays", roleplayRoute);
 
 const port = process.env.PORT;
 app.listen(port, () => console.log(`Listening on port ${port}...`));

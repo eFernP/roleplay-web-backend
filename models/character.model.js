@@ -11,6 +11,7 @@ const character = (sequelize, Sequelize) => {
         model: "users",
         key: "id",
       },
+      unique: "compositeKey",
     },
     roleplay: {
       allowNull: false,
@@ -19,6 +20,7 @@ const character = (sequelize, Sequelize) => {
         model: "roleplays",
         key: "id",
       },
+      unique: "compositeKey",
     },
     name: {
       allowNull: false,

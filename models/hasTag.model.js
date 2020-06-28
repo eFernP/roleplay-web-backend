@@ -11,6 +11,7 @@ const hasTag = (sequelize, Sequelize) => {
           model: "roleplays",
           key: "id",
         },
+        unique: "compositeKey",
       },
       tag: {
         allowNull: false,
@@ -19,6 +20,7 @@ const hasTag = (sequelize, Sequelize) => {
           model: "tags",
           key: "id",
         },
+        unique: "compositeKey",
       },
     },
     { freezeTableName: true }
