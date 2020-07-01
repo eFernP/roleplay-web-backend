@@ -1,8 +1,11 @@
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const { v4: uuid } = require("uuid");
 const { Op } = require("sequelize");
+
 const { db } = require("../models");
 const User = db.models.user;
+const Token = db.models.token;
 const validate = db.validations.user;
 
 // Find a single story with an id
@@ -10,7 +13,13 @@ exports.getUser = (req, res) => {
   User.findByPk(req.user.id)
     .then((data) => {
       delete data["password"];
-      return res.status(200).send(data);
+      return res.status(200).send({
+        user: {
+          id: data.id,
+          name: data.name,
+          email: data.email,
+        },
+      });
     })
     .catch((err) => {
       return res.status(500).send({
@@ -82,7 +91,7 @@ exports.loginUser = (req, res) => {
       if (!data) {
         return res.status(400).send({
           err: {
-            message: "Wrong email or password.",
+            message: "Wrong email or password. (EMAIL)",
           },
         });
       } else {
@@ -90,7 +99,7 @@ exports.loginUser = (req, res) => {
         if (!bcrypt.compareSync(password, user.password)) {
           return res.status(400).json({
             err: {
-              message: "Wrong email or password.",
+              message: "Wrong email or password. (PASSWORD)",
             },
           });
         } else {
@@ -111,10 +120,36 @@ exports.loginUser = (req, res) => {
     });
 };
 
+exports.logoutUser = (req, res) => {
+  const { jti, iat, exp } = req.user;
+  let currentTime = new Date().getTime();
+  currentTime = Math.floor(currentTime / 1000);
+  Token.create({ jti, iat, exp, invalidated: currentTime })
+    .then((data) => {
+      //console.log(data);
+      return res.status(200).send({
+        message: "Logged out correctly.",
+      });
+    })
+    .catch((err) => {
+      return res.status(500).send({
+        message: err.message || "Error logging out.",
+      });
+    });
+};
+
 const generateAuthToken = (user) => {
   const token = jwt.sign(
-    { id: user.id, isAdmin: user.isAdmin },
-    process.env.AUTH_KEY
+    { id: user.id, name: user.name },
+    process.env.AUTH_KEY,
+    {
+      expiresIn: process.env.EXPIRATION_TOKEN,
+      jwtid: uuid(),
+    }
   );
   return token;
 };
+
+// const crypto = require("crypto");
+
+// crypto.randomBytes(3*4).toString('base64');

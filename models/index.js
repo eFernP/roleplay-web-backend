@@ -81,4 +81,6 @@ db.models.roleplayImage = require("../models/roleplayImage.model").roleplayImage
 );
 db.validations.roleplayImage = require("../models/roleplayImage.model").validate;
 
+db.models.token = require("../models/token.model").token(sequelize, Sequelize);
+
 exports.db = db;

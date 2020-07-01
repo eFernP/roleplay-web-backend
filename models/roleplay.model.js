@@ -54,7 +54,6 @@ const validateModel = (model) => {
       .required(),
     numParticipants: Joi.number().integer().min(2).max(5).required(),
     background: Joi.string().max(255).uri(),
-    creator: Joi.number().required(),
   };
 
   return Joi.validate(model, schema);

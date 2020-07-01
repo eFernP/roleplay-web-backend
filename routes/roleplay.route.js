@@ -7,5 +7,6 @@ var router = require("express").Router();
 //router.get("/current", auth, users.getUser);
 
 router.post("/upload", upload, roleplays.uploadBackground);
+router.post("/create", auth, upload, roleplays.createRoleplay);
 
 module.exports = router;
