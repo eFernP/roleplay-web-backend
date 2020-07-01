@@ -31,7 +31,13 @@ exports.getUser = (req, res) => {
 exports.createUser = (req, res) => {
   const { error } = validate(req.body);
   if (error) return res.status(400).send({ message: error.details[0].message });
+  if (!req.body.confirmedPassword)
+    return res
+      .status(400)
+      .send({ message: "You have to confirm your password." });
 
+  if (req.body.confirmedPassword !== req.body.password)
+    return res.status(400).send({ message: "The passwords do not match." });
   //find an existing user
   User.findOne({
     where: { [Op.or]: [{ email: req.body.email }, { name: req.body.name }] },
@@ -82,16 +88,16 @@ exports.createUser = (req, res) => {
 };
 
 exports.loginUser = (req, res) => {
-  if (!req.body.email || !req.body.password)
+  if (!req.body.name || !req.body.password)
     return res.status(400).send({ message: "Fill all fields" });
-  const { email, password } = req.body;
+  const { name, password } = req.body;
   //find an existing user
-  User.findOne({ where: { email } })
+  User.findOne({ where: { name } })
     .then(async (data) => {
       if (!data) {
         return res.status(400).send({
           err: {
-            message: "Wrong email or password. (EMAIL)",
+            message: "Wrong username or password. (NAME)",
           },
         });
       } else {
@@ -99,7 +105,7 @@ exports.loginUser = (req, res) => {
         if (!bcrypt.compareSync(password, user.password)) {
           return res.status(400).json({
             err: {
-              message: "Wrong email or password. (PASSWORD)",
+              message: "Wrong username or password. (PASSWORD)",
             },
           });
         } else {
@@ -138,15 +144,89 @@ exports.logoutUser = (req, res) => {
     });
 };
 
-const generateAuthToken = (user) => {
-  const token = jwt.sign(
-    { id: user.id, name: user.name },
-    process.env.AUTH_KEY,
-    {
-      expiresIn: process.env.EXPIRATION_TOKEN,
-      jwtid: uuid(),
+exports.editUser = async (req, res) => {
+  const { jti, iat, exp, id } = req.user;
+  const originalName = req.user.name;
+  const originalEmail = req.user.email;
+  const { newPassword, confirmedNewPassword, name, email } = req.body;
+  let password;
+
+  if (!name && !email && !newPassword) {
+    return res.status(400).send({
+      message: "Need some field to update",
+    });
+  }
+
+  if (newPassword && !confirmedNewPassword) {
+    return res.status(400).send({
+      message: "Need to confirm the new password",
+    });
+  }
+  if (newPassword && confirmedNewPassword) {
+    if (newPassword === confirmedNewPassword) {
+      password = await bcrypt.hash(newPassword, 10);
+    } else {
+      return res.status(400).send({
+        message: "The passwords do not match.",
+      });
     }
-  );
+  }
+  User.update(
+    { name, email, password },
+    {
+      where: { id },
+    }
+  )
+    .then((num) => {
+      if (num == 1) {
+        let currentTime = new Date().getTime();
+        currentTime = Math.floor(currentTime / 1000);
+        Token.create({ jti, iat, exp, invalidated: currentTime })
+          .then(() => {
+            const data = {
+              id,
+              name: name ? name : originalName,
+              email: email ? email : originalEmail,
+            };
+            const token = generateAuthToken(data);
+            return res
+              .status(200)
+              .header("x-auth-token", token)
+              .send({
+                message: "User updated correctly",
+                user: {
+                  id: data.id,
+                  name: data.name,
+                  email: data.email,
+                },
+              });
+          })
+          .catch((err) => {
+            return res.status(500).send({
+              message:
+                err.message ||
+                "Updated correctly but an error occurred invalidating old token.",
+            });
+          });
+      } else {
+        return res.send({
+          message: `Cannot update user with id=${id}`,
+        });
+      }
+    })
+    .catch((err) => {
+      return res.status(500).send({
+        message: err.message || `Error updating user with id=${id}`,
+      });
+    });
+};
+
+const generateAuthToken = (user) => {
+  const { id, name, email } = user;
+  const token = jwt.sign({ id, name, email }, process.env.AUTH_KEY, {
+    expiresIn: process.env.EXPIRATION_TOKEN,
+    jwtid: uuid(),
+  });
   return token;
 };
 

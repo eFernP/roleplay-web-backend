@@ -46,6 +46,7 @@ module.exports = (req, res, next) => {
           });
       } catch (err) {
         //if invalid token
+        console.log("TOKEN ERROR", err);
         if ((err.name = "JsonWebTokenError")) {
           return res.status(400).send({ message: "Invalid token.", err });
         }
