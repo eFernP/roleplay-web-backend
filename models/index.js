@@ -57,11 +57,11 @@ db.validations.characterImage = require("../models/characterImage.model").valida
 db.models.offer = require("../models/offer.model").offer(sequelize, Sequelize);
 db.validations.offer = require("../models/offer.model").validate;
 
-db.models.participatesIn = require("../models/participatesIn.model").participatesIn(
+db.models.participation = require("../models/participation.model").participation(
   sequelize,
   Sequelize
 );
-db.validations.participatesIn = require("../models/participatesIn.model").validate;
+db.validations.participation = require("../models/participation.model").validate;
 
 db.models.petition = require("../models/petition.model").petition(
   sequelize,

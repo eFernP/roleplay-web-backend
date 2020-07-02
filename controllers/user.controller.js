@@ -31,14 +31,15 @@ exports.getUser = (req, res) => {
 exports.createUser = (req, res) => {
   const { error } = validate(req.body);
   if (error) return res.status(400).send({ message: error.details[0].message });
-  if (!req.body.confirmedPassword)
-    return res
-      .status(400)
-      .send({ message: "You have to confirm your password." });
 
-  if (req.body.confirmedPassword !== req.body.password)
-    return res.status(400).send({ message: "The passwords do not match." });
-  //find an existing user
+  // if (!req.body.confirmedPassword)
+  //   return res
+  //     .status(400)
+  //     .send({ message: "You have to confirm your password." });
+
+  // if (req.body.confirmedPassword !== req.body.password)
+  //   return res.status(400).send({ message: "The passwords do not match." });
+
   User.findOne({
     where: { [Op.or]: [{ email: req.body.email }, { name: req.body.name }] },
   })
@@ -60,29 +61,28 @@ exports.createUser = (req, res) => {
         };
         user.password = await bcrypt.hash(user.password, 10);
 
-        User.create(user)
-          .then((data) => {
-            delete data["password"];
-            const token = generateAuthToken(data);
-            return res.header("x-auth-token", token).send({
-              message: "User added correctly",
-              user: {
-                id: data.id,
-                name: data.name,
-                email: data.email,
-              },
-            });
-          })
-          .catch((err) => {
-            return res
-              .status(500)
-              .send({ message: err.message || "Error creating the user." });
+        User.create(user).then((data) => {
+          delete data["password"];
+          const token = generateAuthToken(data);
+          return res.header("x-auth-token", token).send({
+            message: "User added correctly",
+            user: {
+              id: data.id,
+              name: data.name,
+              email: data.email,
+            },
           });
+        });
+        // .catch((err) => {
+        //   return res
+        //     .status(500)
+        //     .send({ message: err.message || "Error creating the user." });
+        // });
       }
     })
     .catch((err) => {
       return res.status(500).send({
-        message: err.message || "Error retrieving user.",
+        message: err.message || "Error creating user.",
       });
     });
 };
@@ -96,25 +96,21 @@ exports.loginUser = (req, res) => {
     .then(async (data) => {
       if (!data) {
         return res.status(400).send({
-          err: {
-            message: "Wrong username or password. (NAME)",
-          },
+          message: "Wrong username or password. (NAME)",
         });
       } else {
         const user = data.dataValues;
         if (!bcrypt.compareSync(password, user.password)) {
           return res.status(400).json({
-            err: {
-              message: "Wrong username or password. (PASSWORD)",
-            },
+            message: "Wrong username or password. (PASSWORD)",
           });
         } else {
           delete user["password"];
           const token = generateAuthToken(user);
           return res.header("x-auth-token", token).send({
-            id: data.id,
-            name: data.name,
-            email: data.email,
+            id: user.id,
+            name: user.name,
+            email: user.email,
           });
         }
       }
@@ -144,12 +140,9 @@ exports.logoutUser = (req, res) => {
     });
 };
 
-exports.editUser = async (req, res) => {
-  const { jti, iat, exp, id } = req.user;
-  const originalName = req.user.name;
-  const originalEmail = req.user.email;
-  const { newPassword, confirmedNewPassword, name, email } = req.body;
-  let password;
+exports.editUser = (req, res) => {
+  const { newPassword, name, email } = req.body;
+  const { id } = req.user;
 
   if (!name && !email && !newPassword) {
     return res.status(400).send({
@@ -157,17 +150,77 @@ exports.editUser = async (req, res) => {
     });
   }
 
-  if (newPassword && !confirmedNewPassword) {
-    return res.status(400).send({
-      message: "Need to confirm the new password",
-    });
+  // if (newPassword && !confirmedNewPassword) {
+  //   return res.status(400).send({
+  //     message: "Need to confirm the new password",
+  //   });
+  // }
+  // if (newPassword && confirmedNewPassword) {
+  //   if (newPassword === confirmedNewPassword) {
+  //     password = await bcrypt.hash(newPassword, 10);
+  //   } else {
+  //     return res.status(400).send({
+  //       message: "The passwords do not match.",
+  //     });
+  //   }
+  // }
+
+  let orCondition = [];
+
+  if (email) orCondition.push({ email });
+  if (name) orCondition.push({ name });
+
+  console.log(email, name, "Variables");
+
+  if (email || name) {
+    User.findOne({
+      where: {
+        [Op.or]: orCondition,
+        id: { [Op.not]: id },
+      },
+    })
+      .then((foundUser) => {
+        if (foundUser) {
+          const previousUser = foundUser.dataValues;
+          if (previousUser.name === name) {
+            return res
+              .status(400)
+              .send({ message: "User name already registered." });
+          } else if (previousUser.email === email) {
+            return res
+              .status(400)
+              .send({ message: "Email already registered." });
+          }
+        } else {
+          updateUser(req, res);
+        }
+      })
+      .catch((err) => {
+        return res.status(500).send({
+          message: `Error updating user with id=${id}`,
+          err,
+        });
+      });
+  } else {
+    updateUser(req, res);
   }
-  if (newPassword && confirmedNewPassword) {
-    if (newPassword === confirmedNewPassword) {
+};
+
+const updateUser = async (req, res) => {
+  const { jti, iat, exp, id } = req.user;
+  const originalName = req.user.name;
+  const originalEmail = req.user.email;
+  const { newPassword, name, email } = req.body;
+
+  let password;
+  console.log("going to crypt password", password);
+
+  if (newPassword) {
+    try {
       password = await bcrypt.hash(newPassword, 10);
-    } else {
-      return res.status(400).send({
-        message: "The passwords do not match.",
+    } catch (error) {
+      return res.status(500).send({
+        message: `Error encrypting password`,
       });
     }
   }
@@ -179,44 +232,37 @@ exports.editUser = async (req, res) => {
   )
     .then((num) => {
       if (num == 1) {
-        let currentTime = new Date().getTime();
-        currentTime = Math.floor(currentTime / 1000);
-        Token.create({ jti, iat, exp, invalidated: currentTime })
-          .then(() => {
-            const data = {
-              id,
-              name: name ? name : originalName,
-              email: email ? email : originalEmail,
-            };
+        const user = {
+          id,
+          name: name ? name : originalName,
+          email: email ? email : originalEmail,
+        };
+        if (!name && !email) {
+          return res.status(200).send({
+            message: "User updated correctly",
+            user,
+          });
+        } else {
+          let currentTime = new Date().getTime();
+          currentTime = Math.floor(currentTime / 1000);
+          Token.create({ jti, iat, exp, invalidated: currentTime }).then(() => {
             const token = generateAuthToken(data);
-            return res
-              .status(200)
-              .header("x-auth-token", token)
-              .send({
-                message: "User updated correctly",
-                user: {
-                  id: data.id,
-                  name: data.name,
-                  email: data.email,
-                },
-              });
-          })
-          .catch((err) => {
-            return res.status(500).send({
-              message:
-                err.message ||
-                "Updated correctly but an error occurred invalidating old token.",
+            return res.status(200).header("x-auth-token", token).send({
+              message: "User updated correctly",
+              user,
             });
           });
+        }
       } else {
-        return res.send({
+        return res.status(400).send({
           message: `Cannot update user with id=${id}`,
         });
       }
     })
     .catch((err) => {
       return res.status(500).send({
-        message: err.message || `Error updating user with id=${id}`,
+        message: `Error updating user with id=${id}`,
+        err,
       });
     });
 };
