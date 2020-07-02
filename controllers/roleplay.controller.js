@@ -84,10 +84,8 @@ exports.createRoleplay = (req, res) => {
     });
 };
 
-exports.updateRoleplay = (req, res) => {
+exports.editRoleplay = (req, res) => {
   const { id, title, description, type, numParticipants } = req.body;
-
-  const userId = req.user;
 
   if (!id) {
     return res.status(400).send({
@@ -101,65 +99,74 @@ exports.updateRoleplay = (req, res) => {
     });
   }
 
-  Participation.findAll({ roleplay: id })
-    .then((participations) => {
-      if (numParticipants && participations.length > numParticipants) {
-        return res.status(400).send({
-          message:
-            "Cannot set a number of participants less than the current number of participants",
-        });
-      } else {
-        Roleplay.findOne({
-          where: { id, creator: userId },
-        })
-          .then((rpInstance) => {
-            if (rpInstance) {
-              const roleplayData = {
-                title,
-                description,
-                type,
-                numParticipants,
-              };
-              const { error } = validateUpdate(roleplayData);
-              if (error)
-                return res
-                  .status(400)
-                  .send({ message: error.details[0].message });
-
-              if (req.file) {
-                roleplayData.background = req.file.path;
-              }
-              rpInstance
-                .update(roleplayData)
-                .then((roleplay) => {
-                  return res.status(200).send({
-                    message: `Roleplay updated correctly`,
-                    roleplay,
-                  });
-                })
-                .catch((err) => {
-                  return res.status(500).send({
-                    message: `Error updating roleplay with id=${id}`,
-                    err,
-                  });
-                });
-            } else {
-              return res.status(400).send({
-                message: `There is no roleplay with id=${id} created by the user with id=${userId}`,
-              });
-            }
-          })
-          .catch((err) => {
-            return res.status(500).send({
-              message: "Error finding roleplay",
-              err,
-            });
+  if (numParticipants) {
+    Participation.findAll({ roleplay: id })
+      .then((participations) => {
+        if (participations.length > numParticipants) {
+          return res.status(400).send({
+            message:
+              "Cannot set a number of participants less than the current number of participants",
           });
+        } else {
+          updateRoleplay(req, res);
+        }
+      })
+      .catch((err) => {
+        return res.status(500).send({
+          message: "Error updating roleplay",
+          err,
+        });
+      });
+  } else {
+    updateRoleplay(req, res);
+    //UPDATE
+  }
+};
+
+const updateRoleplay = (req, res) => {
+  const { id, title, description, type, numParticipants } = req.body;
+
+  const userId = req.user;
+  Roleplay.findOne({
+    where: { id, creator: userId },
+  })
+    .then((rpInstance) => {
+      if (rpInstance) {
+        const roleplayData = {
+          title,
+          description,
+          type,
+          numParticipants,
+        };
+        const { error } = validateUpdate(roleplayData);
+        if (error)
+          return res.status(400).send({ message: error.details[0].message });
+
+        if (req.file) {
+          roleplayData.background = req.file.path;
+        }
+        console.log("ROL DATA:", roleplayData);
+        rpInstance.update(roleplayData).then((roleplay) => {
+          return res.status(200).send({
+            message: `Roleplay updated correctly`,
+            roleplay,
+          });
+        });
+        // .catch((err) => {
+        //   return res.status(500).send({
+        //     message: `Error updating roleplay with id=${id}`,
+        //     err,
+        //   });
+        // });
+      } else {
+        return res.status(400).send({
+          message: `There is no roleplay with id=${id} created by the user with id=${userId}`,
+        });
       }
     })
     .catch((err) => {
       return res.status(500).send({
-        message: "Error finding participations",
+        message: "Error updating roleplay",
         err,
       });
     });
