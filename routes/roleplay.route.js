@@ -14,4 +14,10 @@ router.post("/create", auth, upload, roleplays.createRoleplay);
 //id, ?title, ?description, ?type (fantasy, sci-fi, futuristic, historical, contemporary, other), ?numParticipants (entre 2 i 5), ?background(imagen)
 router.post("/edit", auth, upload, roleplays.editRoleplay);
 
+//token, id
+router.get("/roleplay/:id", auth, roleplays.getRoleplayById);
+
+//token
+router.get("/myroleplays", auth, roleplays.getUserRoleplays);
+
 module.exports = router;

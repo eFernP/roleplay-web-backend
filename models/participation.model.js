@@ -6,7 +6,7 @@ const participation = (sequelize, Sequelize) => {
       allowNull: false,
       type: Sequelize.INTEGER,
       references: {
-        model: "roleplays",
+        model: "users",
         key: "id",
       },
       unique: "compositeKey",
@@ -15,7 +15,7 @@ const participation = (sequelize, Sequelize) => {
       allowNull: false,
       type: Sequelize.INTEGER,
       references: {
-        model: "tags",
+        model: "roleplays",
         key: "id",
       },
       unique: "compositeKey",
