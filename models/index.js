@@ -36,11 +36,11 @@ db.models.roleplay = require("../models/roleplay.model").roleplay(
 db.validations.roleplay = require("../models/roleplay.model").validate;
 db.models.tag = require("../models/tag.model").tag(sequelize, Sequelize);
 db.validations.tag = require("../models/tag.model").validate;
-db.models.hasTag = require("../models/hasTag.model").hasTag(
+db.models.roleplayTag = require("../models/roleplayTag.model").roleplayTag(
   sequelize,
   Sequelize
 );
-db.validations.hasTag = require("../models/hasTag.model").validate;
+db.validations.roleplayTag = require("../models/roleplayTag.model").validate;
 
 db.models.character = require("../models/character.model").character(
   sequelize,
@@ -48,11 +48,11 @@ db.models.character = require("../models/character.model").character(
 );
 db.validations.character = require("../models/character.model").validate;
 
-db.models.characterImage = require("../models/characterImage.model").characterImage(
-  sequelize,
-  Sequelize
-);
-db.validations.characterImage = require("../models/characterImage.model").validate;
+// db.models.characterImage = require("../models/characterImage.model").characterImage(
+//   sequelize,
+//   Sequelize
+// );
+// db.validations.characterImage = require("../models/characterImage.model").validate;
 
 db.models.offer = require("../models/offer.model").offer(sequelize, Sequelize);
 db.validations.offer = require("../models/offer.model").validate;
@@ -82,5 +82,72 @@ db.models.roleplayImage = require("../models/roleplayImage.model").roleplayImage
 db.validations.roleplayImage = require("../models/roleplayImage.model").validate;
 
 db.models.token = require("../models/token.model").token(sequelize, Sequelize);
+
+//ASSOCIATIONS
+
+db.models.roleplay.belongsToMany(db.models.user, {
+  through: db.models.participation,
+  foreignKey: "roleplay",
+});
+
+db.models.user.belongsToMany(db.models.roleplay, {
+  through: db.models.participation,
+  foreignKey: "user",
+});
+
+// db.models.character.belongsTo(db.models.roleplay, {
+//   through: db.models.participation,
+//   foreignKey: "character",
+// });
+
+db.models.user.belongsTo(db.models.roleplay, {
+  foreignKey: "creator",
+});
+
+db.models.roleplay.belongsToMany(db.models.tag, {
+  foreignKey: "roleplay",
+  through: db.models.roleplayTag,
+});
+
+db.models.tag.belongsToMany(db.models.roleplay, {
+  foreignKey: "tag",
+  through: db.models.roleplayTag,
+});
+
+db.models.user.hasOne(db.models.character, {
+  foreignKey: "user",
+});
+
+db.models.roleplay.hasOne(db.models.character, {
+  foreignKey: "roleplay",
+});
+
+db.models.roleplay.hasOne(db.models.offer, {
+  foreignKey: "roleplay",
+});
+
+db.models.user.hasOne(db.models.petition, {
+  foreignKey: "user",
+});
+
+db.models.roleplay.hasOne(db.models.petition, {
+  foreignKey: "roleplay",
+});
+
+db.models.user.hasOne(db.models.roleplayImage, {
+  foreignKey: "sender",
+});
+
+db.models.roleplay.hasOne(db.models.roleplayImage, {
+  foreignKey: "roleplay",
+});
+
+db.models.user.hasOne(db.models.roleplayMessage, {
+  foreignKey: "sender",
+});
+
+db.models.roleplay.hasOne(db.models.roleplayMessage, {
+  foreignKey: "roleplay",
+});
 
 exports.db = db;

@@ -2,14 +2,14 @@ const Joi = require("joi");
 
 const offer = (sequelize, Sequelize) => {
   const Offer = sequelize.define("offer", {
-    user: {
-      allowNull: false,
-      type: Sequelize.INTEGER,
-      references: {
-        model: "users",
-        key: "id",
-      },
-    },
+    // user: {
+    //   allowNull: false,
+    //   type: Sequelize.INTEGER,
+    //   references: {
+    //     model: "users",
+    //     key: "id",
+    //   },
+    // },
     roleplay: {
       allowNull: false,
       type: Sequelize.INTEGER,
@@ -35,7 +35,7 @@ const offer = (sequelize, Sequelize) => {
 
 const validateModel = (model) => {
   const schema = {
-    user: Joi.number().required(),
+    // user: Joi.number().required(),
     roleplay: Joi.number().required(),
     message: Joi.string().max(500).required(),
     available: Joi.boolean(),

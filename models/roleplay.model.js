@@ -33,14 +33,14 @@ const roleplay = (sequelize, Sequelize) => {
       type: Sequelize.STRING,
       validate: { isUrl: true },
     },
-    creator: {
-      allowNull: false,
-      type: Sequelize.INTEGER,
-      references: {
-        model: "users",
-        key: "id",
-      },
-    },
+    // creator: {
+    //   allowNull: false,
+    //   type: Sequelize.INTEGER,
+    //   references: {
+    //     model: "users",
+    //     key: "id",
+    //   },
+    // },
   });
   return Roleplay;
 };

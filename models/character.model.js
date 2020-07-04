@@ -4,24 +4,24 @@ const { GENDER_TYPES } = require("../constants");
 
 const character = (sequelize, Sequelize) => {
   const Character = sequelize.define("character", {
-    user: {
-      allowNull: false,
-      type: Sequelize.INTEGER,
-      references: {
-        model: "users",
-        key: "id",
-      },
-      unique: "compositeKey",
-    },
-    roleplay: {
-      allowNull: false,
-      type: Sequelize.INTEGER,
-      references: {
-        model: "roleplays",
-        key: "id",
-      },
-      unique: "compositeKey",
-    },
+    // user: {
+    //   allowNull: false,
+    //   type: Sequelize.INTEGER,
+    //   references: {
+    //     model: "users",
+    //     key: "id",
+    //   },
+    //   unique: "compositeKey",
+    // },
+    // roleplay: {
+    //   allowNull: false,
+    //   type: Sequelize.INTEGER,
+    //   references: {
+    //     model: "roleplays",
+    //     key: "id",
+    //   },
+    //   unique: "compositeKey",
+    // },
     name: {
       allowNull: false,
       type: Sequelize.STRING,
@@ -64,6 +64,11 @@ const character = (sequelize, Sequelize) => {
         max: 2000,
       },
     },
+    image: {
+      allowNull: false,
+      type: Sequelize.STRING,
+      validate: { isUrl: true },
+    },
   });
   return Character;
 };
@@ -79,6 +84,7 @@ const validateModel = (model) => {
     profession: Joi.string().max(20),
     description: Joi.string().max(2000),
     story: Joi.string().max(2000),
+    image: Joi.string().max(255).uri().required(),
   };
   return Joi.validate(model, schema);
 };

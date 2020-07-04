@@ -36,7 +36,7 @@ const roleplayImage = (sequelize, Sequelize) => {
 
 const validateModel = (model) => {
   const schema = {
-    user: Joi.number().required(),
+    sender: Joi.number().required(),
     roleplay: Joi.number().required(),
     url: Joi.string().max(255).uri().required(),
     title: Joi.string().max(50),

@@ -37,7 +37,7 @@ const roleplayMessage = (sequelize, Sequelize) => {
 
 const validateModel = (model) => {
   const schema = {
-    user: Joi.number().required(),
+    sender: Joi.number().required(),
     roleplay: Joi.number().required(),
     message: Joi.string().max(255).required(),
     type: Joi.string()

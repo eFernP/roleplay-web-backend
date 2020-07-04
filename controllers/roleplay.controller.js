@@ -6,6 +6,7 @@ const { ROLE_TYPES } = require("../constants");
 const { db } = require("../models");
 const { sendResponse } = require("../helpers/functions");
 const Roleplay = db.models.roleplay;
+const User = db.models.user;
 const Participation = db.models.participation;
 
 const validate = db.validations.roleplay;
@@ -109,22 +110,28 @@ exports.getRoleplayById = (req, res) => {
 exports.getUserRoleplays = (req, res) => {
   const user = req.user.id;
 
-  Participation.findAll({ user })
-    .then((participations) => {
-      if (participations.length === 0) {
-        return res.status(400).send({
-          message: "No roleplay were found",
-          roleplays: [],
-        });
+  User.findOne({
+    where: { id: user },
+    include: [
+      {
+        model: Roleplay,
+        through: {
+          attributes: ["isMaster"],
+        },
+      },
+    ],
+  })
+    .then((user) => {
+      console.log("USER ", user);
+      if (user.dataValues.roleplays.length === 0) {
+        return sendResponse(res, 400, "No roleplay were found");
       } else {
-        //Con la id de los roleplays, obtener su información
+        const { roleplays } = user.dataValues;
+        return sendResponse(res, 200, "Found roleplays", { roleplays });
       }
     })
     .catch((err) => {
-      return res.status(500).send({
-        message: "Error updating roleplay",
-        err,
-      });
+      return sendResponse(res, 500, err.message);
     });
 };
 
