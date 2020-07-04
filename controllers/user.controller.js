@@ -2,9 +2,11 @@ const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const { v4: uuid } = require("uuid");
 const { Op } = require("sequelize");
+const Joi = require("joi");
 
 const { db } = require("../models");
 const { sendResponse } = require("../helpers/functions");
+const { user } = require("../models/user.model");
 const User = db.models.user;
 const Token = db.models.token;
 const validate = db.validations.user;
@@ -33,10 +35,17 @@ exports.createUser = (req, res) => {
   const { error } = validate(req.body);
   let status = 500;
   if (error) return sendResponse(res, 400, error.details[0].message, null);
+
+  let user = {
+    name: req.body.name,
+    password: req.body.password,
+    email: req.body.email,
+  };
+
   User.findOne({
     where: { [Op.or]: [{ email: req.body.email }, { name: req.body.name }] },
   })
-    .then(async (data) => {
+    .then((data) => {
       if (data) {
         const previousUser = data.dataValues;
         status = 400;
@@ -45,15 +54,12 @@ exports.createUser = (req, res) => {
         } else {
           throw new Error("Email already registered.");
         }
-      } else {
-        user = {
-          name: req.body.name,
-          password: req.body.password,
-          email: req.body.email,
-        };
-        user.password = await bcrypt.hash(user.password, 10);
-        return User.create(user);
       }
+      return bcrypt.hash(user.password, 10);
+    })
+    .then((password) => {
+      user.password = password;
+      return User.create(user);
     })
     .then((data) => {
       delete data["password"];
@@ -112,17 +118,62 @@ exports.logoutUser = (req, res) => {
     });
 };
 
-exports.editUser = (req, res) => {
+exports.editUser = async (req, res) => {
   const { newPassword, name, email } = req.body;
-  const { id } = req.user;
+  const { jti, iat, exp, id } = req.user;
+  const originalName = req.user.name;
+  const originalEmail = req.user.email;
+
+  if (!email && !name && !newPassword) {
+    return sendResponse(res, 400, "Need some field to update");
+  }
+
+  let status = 500;
+
+  let userData = {
+    name,
+    email,
+    newPassword,
+  };
+
+  const { error } = validateUpdate(userData);
+  if (error) {
+    return sendResponse(res, 400, error.details[0].message);
+  }
+
+  let password;
+  if (newPassword) {
+    try {
+      password = await bcrypt.hash(newPassword, 10);
+    } catch (err) {
+      return sendResponse(res, 500, err.message);
+    }
+  }
 
   if (!email && !name) {
-    if (!newPassword)
-      return sendResponse(res, 400, "Need some field to update");
-    else updatePassword(req, res);
+    User.update(
+      { password },
+      {
+        where: { id },
+      }
+    )
+      .then((num) => {
+        if (num == 1) {
+          const user = {
+            id,
+            name: originalName,
+            email: originalEmail,
+          };
+          return sendResponse(res, 200, "User updated correctly", { user });
+        } else {
+          throw new Error(`Cannot update user with id=${id}`);
+        }
+      })
+      .catch((err) => {
+        return sendResponse(res, 500, err.message);
+      });
   } else {
     let orCondition = [];
-    let status = 500;
 
     if (email) orCondition.push({ email });
     if (name) orCondition.push({ name });
@@ -135,84 +186,30 @@ exports.editUser = (req, res) => {
       .then((foundUser) => {
         if (foundUser) {
           const previousUser = foundUser.dataValues;
+          status = 400;
           if (previousUser.name === name) {
-            status = 400;
             throw new Error("User name already registered.");
-          } else if (previousUser.email === email) {
-            status = 400;
+          } else {
             throw new Error("Email already registered.");
           }
+        }
+        return User.update(
+          { name, email, password },
+          {
+            where: { id },
+          }
+        );
+      })
+      .then((num) => {
+        if (num == 1) {
+          let currentTime = new Date().getTime();
+          currentTime = Math.floor(currentTime / 1000);
+          return Token.create({ jti, iat, exp, invalidated: currentTime });
         } else {
-          updateUser(req, res);
+          throw new Error(`Cannot update user with id=${id}`);
         }
       })
-      .catch((err) => {
-        return sendResponse(res, status, err.message);
-      });
-  }
-};
-
-const updatePassword = async (req, res) => {
-  const { id, email, name } = req.user;
-  const { newPassword } = req.body;
-
-  const user = {
-    id,
-    name,
-    email,
-  };
-
-  bcrypt
-    .hash(newPassword, 10)
-    .then((password) => {
-      return User.update(
-        { password },
-        {
-          where: { id },
-        }
-      );
-    })
-    .then((num) => {
-      if (num == 1) {
-        return sendResponse(res, 200, "User updated correctly", { user });
-      } else {
-        throw new Error(`Cannot update user with id=${id}`);
-      }
-    })
-
-    .catch((err) => {
-      return sendResponse(res, 500, err.message);
-    });
-};
-
-const updateUser = async (req, res) => {
-  const { jti, iat, exp, id } = req.user;
-  const originalName = req.user.name;
-  const originalEmail = req.user.email;
-  const { newPassword, name, email } = req.body;
-
-  let password;
-  if (newPassword) {
-    try {
-      password = await bcrypt.hash(newPassword, 10);
-    } catch (err) {
-      return sendResponse(res, 500, err.message);
-    }
-  }
-
-  let currentTime = new Date().getTime();
-  currentTime = Math.floor(currentTime / 1000);
-  Token.create({ jti, iat, exp, invalidated: currentTime })
-    .then(() => {
-      return User.update(
-        { name, email, password },
-        {
-          where: { id },
-        }
-      );
-    })
-    .then((num) => {
-      if (num == 1) {
+      .then((data) => {
         const user = {
           id,
           name: name ? name : originalName,
@@ -221,13 +218,11 @@ const updateUser = async (req, res) => {
         const token = generateAuthToken(user);
         res.header("x-auth-token", token);
         return sendResponse(res, 200, "User updated correctly", { user });
-      } else {
-        throw new Error(`Cannot update user with id=${id}`);
-      }
-    })
-    .catch((err) => {
-      return sendResponse(res, 500, err.message);
-    });
+      })
+      .catch((err) => {
+        return sendResponse(res, status, err.message);
+      });
+  }
 };
 
 const generateAuthToken = (user) => {
@@ -237,6 +232,16 @@ const generateAuthToken = (user) => {
     jwtid: uuid(),
   });
   return token;
+};
+
+const validateUpdate = (model) => {
+  const schema = {
+    name: Joi.string().max(50),
+    email: Joi.string().min(5).max(255).email(),
+    newPassword: Joi.string().min(3).max(255),
+  };
+
+  return Joi.validate(model, schema);
 };
 
 // const crypto = require("crypto");

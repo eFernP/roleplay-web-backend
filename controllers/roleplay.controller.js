@@ -81,37 +81,6 @@ exports.createRoleplay = (req, res) => {
     });
 };
 
-exports.editRoleplay = (req, res) => {
-  const { id, title, description, type, numParticipants } = req.body;
-  let status = 500;
-  if (!id) {
-    return sendResponse(res, 400, "Missing roleplay id");
-  }
-
-  if (!title && !description && !type && !numParticipants && !req.file) {
-    return sendResponse(res, 400, "Need some field to update");
-  }
-
-  if (numParticipants) {
-    Participation.findAll({ roleplay: id })
-      .then((participations) => {
-        if (participations.length > numParticipants) {
-          status = 400;
-          throw new Error(
-            "Cannot set a number of participants less than the current number of participants"
-          );
-        } else {
-          updateRoleplay(req, res);
-        }
-      })
-      .catch((err) => {
-        return sendResponse(res, status, err.message);
-      });
-  } else {
-    updateRoleplay(req, res);
-  }
-};
-
 exports.getRoleplayById = (req, res) => {
   const id = req.params.id;
   let status = 500;
@@ -159,17 +128,25 @@ exports.getUserRoleplays = (req, res) => {
     });
 };
 
-const updateRoleplay = (req, res) => {
+exports.editRoleplay = (req, res) => {
   const { id, title, description, type, numParticipants } = req.body;
   const userId = req.user.id;
   let status = 500;
+
+  if (!id) {
+    return sendResponse(res, 400, "Missing roleplay id");
+  }
+
+  if (!title && !description && !type && !numParticipants && !req.file) {
+    return sendResponse(res, 400, "Need some field to update");
+  }
 
   Roleplay.findOne({
     where: { id, creator: userId },
   })
     .then((rpInstance) => {
       if (rpInstance) {
-        const roleplayData = {
+        let roleplayData = {
           title,
           description,
           type,
@@ -180,8 +157,19 @@ const updateRoleplay = (req, res) => {
           status = 400;
           throw new Error(error.details[0].message);
         }
+
         if (req.file) {
           roleplayData.background = req.file.path;
+        }
+        if (numParticipants) {
+          Participation.findAll({ roleplay: id }).then((participations) => {
+            if (participations.length > numParticipants) {
+              status = 400;
+              throw new Error(
+                "Cannot set a number of participants less than the current number of participants"
+              );
+            }
+          });
         }
         return rpInstance.update(roleplayData);
       } else {
@@ -192,7 +180,7 @@ const updateRoleplay = (req, res) => {
       }
     })
     .then((roleplay) => {
-      return sendResponse(res, status, "Roleplay updated correctly", {
+      return sendResponse(res, 200, "Roleplay updated correctly", {
         roleplay,
       });
     })
