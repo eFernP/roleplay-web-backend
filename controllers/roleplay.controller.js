@@ -7,9 +7,10 @@ const { db } = require("../models");
 const { sendResponse } = require("../helpers/functions");
 const Roleplay = db.models.roleplay;
 const User = db.models.user;
+const Tag = db.models.tag;
 const Participation = db.models.participation;
-
-const validate = db.validations.roleplay;
+const RoleplayTag = db.models.roleplayTag;
+//const validate = db.validations.roleplay;
 
 exports.uploadBackground = (req, res) => {
   console.log("request body", req.body);
@@ -39,11 +40,14 @@ exports.uploadBackground = (req, res) => {
 };
 
 exports.createRoleplay = (req, res) => {
-  const { error } = validate(req.body);
+  const { error } = validateCreation(req.body);
   if (error) return sendResponse(res, 400, error.details[0].message, null);
 
   let status = 500;
   let roleplay;
+  let tags;
+
+  console.log("TAGS ", req.body.tags);
 
   Roleplay.findOne({
     where: { title: req.body.title },
@@ -69,6 +73,7 @@ exports.createRoleplay = (req, res) => {
     })
     .then((data) => {
       roleplay = data.dataValues;
+      if (req.body.tags) addTags(req.body.tags, roleplay.id);
       return Participation.create({
         user: req.user.id,
         roleplay: roleplay.id,
@@ -80,6 +85,31 @@ exports.createRoleplay = (req, res) => {
     .catch((err) => {
       return sendResponse(res, status, err.message);
     });
+};
+
+const getTagList = (tags) => {
+  return tags.map((t) => {
+    return { name: t };
+  });
+};
+
+const addTags = (tags, roleplay) => {
+  const promises = tags.map((t) => {
+    return Tag.findOrCreate({
+      where: {
+        name: t,
+      },
+      defaults: {
+        name: t,
+      },
+    }).then((result) => {
+      const tag = result[0];
+      const created = result[1]; //boolean
+
+      return RoleplayTag.create({ roleplay, tag: tag.id });
+    });
+  });
+  Promise.all(promises).then(() => console.log("ADDED TAGS"));
 };
 
 exports.getRoleplayById = (req, res) => {
@@ -136,7 +166,7 @@ exports.getUserRoleplays = (req, res) => {
 };
 
 exports.editRoleplay = (req, res) => {
-  const { id, title, description, type, numParticipants } = req.body;
+  const { id, title, description, type, numParticipants, tags } = req.body;
   const userId = req.user.id;
   let status = 500;
 
@@ -196,13 +226,29 @@ exports.editRoleplay = (req, res) => {
     });
 };
 
-const validateUpdate = (model) => {
+const validateCreation = (data) => {
+  const schema = {
+    title: Joi.string().max(50).required(),
+    description: Joi.string().max(2000).required(),
+    type: Joi.string()
+      .valid(...ROLE_TYPES)
+      .required(),
+    numParticipants: Joi.number().integer().min(2).max(5).required(),
+    background: Joi.string().max(255).uri(),
+    tags: Joi.array().items(Joi.string()),
+  };
+
+  return Joi.validate(data, schema);
+};
+
+const validateUpdate = (data) => {
   const schema = {
     title: Joi.string().max(50),
     description: Joi.string().max(2000),
     type: Joi.string().valid(...ROLE_TYPES),
     numParticipants: Joi.number().integer().min(2).max(5),
+    tags: Joi.array().items(Joi.string()),
   };
 
-  return Joi.validate(model, schema);
+  return Joi.validate(data, schema);
 };

@@ -17,6 +17,6 @@ router.post("/login", users.loginUser);
 router.post("/logout", auth, users.logoutUser);
 
 //  token, ?name, ?email, ?newPassword, ?confirmedNewPassword
-router.post("/edit", auth, users.editUser);
+router.put("/edit", auth, users.editUser);
 
 module.exports = router;
