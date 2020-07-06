@@ -1,10 +1,11 @@
 const jwt = require("jsonwebtoken");
-const { Op } = require("sequelize");
+const { Op, or } = require("sequelize");
 const Joi = require("joi");
 
 const { ROLE_TYPES } = require("../constants");
 const { db } = require("../models");
 const { sendResponse } = require("../helpers/functions");
+const { compare } = require("bcrypt");
 const Roleplay = db.models.roleplay;
 const User = db.models.user;
 const Tag = db.models.tag;
@@ -73,7 +74,8 @@ exports.createRoleplay = (req, res) => {
     })
     .then((data) => {
       roleplay = data.dataValues;
-      if (req.body.tags) addTags(req.body.tags, roleplay.id);
+      if (req.body.tags && req.body.tags.length > 0)
+        addTags(req.body.tags, roleplay.id);
       return Participation.create({
         user: req.user.id,
         roleplay: roleplay.id,
@@ -85,12 +87,6 @@ exports.createRoleplay = (req, res) => {
     .catch((err) => {
       return sendResponse(res, status, err.message);
     });
-};
-
-const getTagList = (tags) => {
-  return tags.map((t) => {
-    return { name: t };
-  });
 };
 
 const addTags = (tags, roleplay) => {
@@ -105,11 +101,126 @@ const addTags = (tags, roleplay) => {
     }).then((result) => {
       const tag = result[0];
       const created = result[1]; //boolean
-
       return RoleplayTag.create({ roleplay, tag: tag.id });
     });
   });
   Promise.all(promises).then(() => console.log("ADDED TAGS"));
+};
+
+const deleteTags = () => {
+  //NO LOS COGE BIEN //////!!!!!!!
+  Tag.findAll({
+    include: [
+      {
+        model: Roleplay,
+        required: false,
+        where: { id: null },
+      },
+    ],
+  }).then((tags) => {
+    console.log("TAGS TO DELETE ", tags);
+    const ids = tags.map((t) => t.id);
+    //return Tag.destroy({ where: { id: ids } });
+  });
+};
+
+//CONVERTIR EN UPDATE
+exports.updateTags = (req, res) => {
+  //const { tags } = req.body;
+  const { id } = req.body;
+  const newTags = req.body.tags;
+  let status = 500;
+  let arraysOfTags;
+
+  Roleplay.findOne({
+    where: { id },
+    include: [
+      {
+        model: Tag,
+        attributes: ["name", "id"],
+        through: {
+          attributes: [],
+        },
+      },
+    ],
+  })
+    .then((roleplay) => {
+      let originalTags = [];
+      if (roleplay.dataValues.tags.length > 0) {
+        originalTags = roleplay.dataValues.tags;
+      }
+      arraysOfTags = compareTags(originalTags, newTags);
+
+      if (arraysOfTags.tagsToRemove.length > 0) {
+        RoleplayTag.destroy({
+          where: { tag: arraysOfTags.tagsToRemove, roleplay: id },
+        })
+          .then(() => {
+            return RoleplayTag.findAll({
+              where: { tag: arraysOfTags.tagsToRemove, roleplay: id },
+            });
+          })
+          .then((otherRelations) => {
+            if (otherRelations && otherRelations.length > 0) {
+              const missingTags = getMissingTags(
+                arraysOfTags.tagsToRemove,
+                otherRelations
+              );
+              if (missingTags.length > 0)
+                return Tag.destroy({ where: { id: missingTags } });
+              else {
+                return;
+              }
+            } else {
+              return Tag.destroy({ where: { id: arraysOfTags.tagsToRemove } });
+            }
+          })
+          .then(() => console.log("delete tags without roleplays"));
+      }
+      return;
+    })
+    .then(() => {
+      if (arraysOfTags.tagsToAdd.length > 0) {
+        return addTags(arraysOfTags.tagsToAdd, id);
+      }
+    })
+    .then(() => {
+      return sendResponse(res, 200, "Tags changed", arraysOfTags);
+    })
+    .catch((err) => {
+      return sendResponse(res, 500, err.message);
+    });
+};
+
+const getMissingTags = (tags, relations) => {
+  const relationIds = relations.map((r) => {
+    return r.tag;
+  });
+  return tags.filter((t) => {
+    if (!relationIds.includes(t)) {
+      return t;
+    }
+  });
+};
+
+const compareTags = (originalTags, newTags) => {
+  const tagsToAdd = [];
+  const tagsToRemove = [];
+  const originalNames = [];
+  originalTags.forEach((t) => {
+    originalNames.push(t.name);
+    if (!newTags.includes(t.name)) {
+      console.log("TAG TO REMOVE", t);
+      tagsToRemove.push(t.id);
+    }
+  });
+  newTags.forEach((t) => {
+    if (!originalNames.includes(t)) {
+      tagsToAdd.push(t);
+    }
+  });
+
+  return { tagsToAdd, tagsToRemove };
 };
 
 exports.getRoleplayById = (req, res) => {
