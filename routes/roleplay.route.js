@@ -20,6 +20,4 @@ router.get("/roleplay/:id", auth, roleplays.getRoleplayById);
 //token
 router.get("/myroleplays", auth, roleplays.getUserRoleplays);
 
-router.post("/tags", auth, roleplays.updateTags);
-
 module.exports = router;

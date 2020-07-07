@@ -100,7 +100,7 @@ db.models.user.belongsToMany(db.models.roleplay, {
 //   foreignKey: "character",
 // });
 
-db.models.user.belongsTo(db.models.roleplay, {
+db.models.user.hasOne(db.models.roleplay, {
   foreignKey: "creator",
 });
 
