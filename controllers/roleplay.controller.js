@@ -47,9 +47,6 @@ exports.createRoleplay = (req, res) => {
 
   let status = 500;
   let roleplay;
-  let tags;
-
-  console.log("TAGS ", req.body.tags);
 
   Roleplay.findOne({
     where: { title: req.body.title },
@@ -159,95 +156,13 @@ exports.editRoleplay = async (req, res) => {
     } else {
       status = 400;
       throw new Error(
-        `There is no roleplay with id=${id} created by the user with id=${userId}`
+        `There is no roleplay with id=${id} created by the user with id=${userId}` ///MIDDLEWARE??
       );
     }
   } catch (err) {
     return sendResponse(res, status, err.message);
   }
 };
-
-// exports.editRoleplay = (req, res) => {
-//   const { id, title, description, type, numParticipants, tags } = req.body;
-//   const userId = req.user.id;
-//   let status = 500;
-
-//   let roleplay;
-
-//   if (!id) {
-//     return sendResponse(res, 400, "Missing roleplay id");
-//   }
-
-//   if (
-//     !title &&
-//     !description &&
-//     !type &&
-//     !numParticipants &&
-//     !tags &&
-//     !req.file
-//   ) {
-//     return sendResponse(res, 400, "Need some field to update");
-//   }
-
-//   Roleplay.findOne({
-//     where: { id, creator: userId },
-//   })
-//     .then((rpInstance) => {
-//       //   console.log("RP INSTANCE", rpInstance);
-//       //   return sendResponse(res, 200, "RP", rpInstance);
-//       // });
-//       if (rpInstance) {
-//         let roleplayData = {
-//           title,
-//           description,
-//           type,
-//           numParticipants,
-//           tags,
-//         };
-//         const { error } = validateUpdate(roleplayData);
-//         if (error) {
-//           status = 400;
-//           throw new Error(error.details[0].message);
-//         }
-
-//         if (req.file) {
-//           roleplayData.background = req.file.path;
-//         }
-//         if (numParticipants) {
-//           Participation.findAll({ roleplay: id }).then((participations) => {
-//             if (participations.length > numParticipants) {
-//               status = 400;
-//               throw new Error(
-//                 "Cannot set a number of participants less than the current number of participants"
-//               );
-//             }
-//           });
-//         }
-//         return rpInstance.update(roleplayData);
-//       } else {
-//         status = 400;
-//         throw new Error(
-//           `There is no roleplay with id=${id} created by the user with id=${userId}`
-//         );
-//       }
-//     })
-//     .then(async (rp) => {
-//       roleplay = rp;
-//       if (tags && tags.length > 0) {
-//         await updateTags(tags, id); // NO ESPERAAAAA!!
-//       }
-//     })
-//     .then(() => {
-//       roleplay.dataValues.tags = tags ? tags : [];
-//       console.log("ROLEPLAY FINAL ", roleplay);
-//       return sendResponse(res, 200, "Roleplay updated correctly", {
-//         roleplay,
-//       });
-//     })
-//     .catch((err) => {
-//       return sendResponse(res, status, err.message);
-//     });
-// };
 
 const updateTags = async (newTags, id) => {
   let arraysOfTags;
@@ -292,77 +207,9 @@ const updateTags = async (newTags, id) => {
 
     if (arraysOfTags.tagsToAdd.length > 0) {
       await addTags(arraysOfTags.tagsToAdd, id);
-      console.log("Tags changed");
     }
   }
 };
-
-// //USARLA EN EDIT
-// const updateTags = async (newTags, id) => {
-//   //const { id } = req.body;
-//   //const newTags = req.body.tags;
-//   //let status = 500;
-//   let arraysOfTags;
-
-//   await Roleplay.findOne({
-//     where: { id },
-//     include: [
-//       {
-//         model: Tag,
-//         attributes: ["name", "id"],
-//         through: {
-//           attributes: [],
-//         },
-//       },
-//     ],
-//   })
-//     .then((roleplay) => {
-//       let originalTags = [];
-//       if (roleplay.dataValues.tags.length > 0) {
-//         originalTags = roleplay.dataValues.tags;
-//       }
-//       arraysOfTags = compareTags(originalTags, newTags);
-
-//       if (arraysOfTags.tagsToRemove.length > 0) {
-//         RoleplayTag.destroy({
-//           where: { tag: arraysOfTags.tagsToRemove, roleplay: id },
-//         })
-//           .then(() => {
-//             return RoleplayTag.findAll({
-//               where: { tag: arraysOfTags.tagsToRemove, roleplay: id },
-//             });
-//           })
-//           .then((otherRelations) => {
-//             if (otherRelations && otherRelations.length > 0) {
-//               const missingTags = getMissingTags(
-//                 arraysOfTags.tagsToRemove,
-//                 otherRelations
-//               );
-//               if (missingTags.length > 0)
-//                 return Tag.destroy({ where: { id: missingTags } });
-//               else {
-//                 return;
-//               }
-//             } else {
-//               return Tag.destroy({ where: { id: arraysOfTags.tagsToRemove } });
-//             }
-//           })
-//           .then(() => console.log("delete tags without roleplays"));
-//       }
-//       return;
-//     })
-//     .then(() => {
-//       if (arraysOfTags.tagsToAdd.length > 0) {
-//         return addTags(arraysOfTags.tagsToAdd, id);
-//       }
-//     })
-//     .then(() => {
-//       console.log("Tags changed");
-//     });
-//   // .catch((err) => {
-//   //   return sendResponse(res, 500, err.message);
-//   // });
-// };
 
 const addTags = (tags, roleplay) => {
   const promises = tags.map((t) => {
@@ -417,46 +264,37 @@ const compareTags = (originalTags, newTags) => {
   return { tagsToAdd, tagsToRemove };
 };
 
-exports.getRoleplayById = (req, res) => {
-  const id = req.params.id;
+exports.getRoleplayById = async (req, res) => {
   let status = 500;
-  Participation.findOne({
-    where: { user: req.user.id, roleplay: id },
-  })
-    .then((participation) => {
-      if (participation) {
-        return Roleplay.findOne({
-          where: { id },
-          include: [
-            {
-              model: Tag,
-              attributes: ["name"],
-              through: {
-                attributes: [],
-              },
-            },
-          ],
-        });
-      } else {
-        status = 400;
-        throw new Error(
-          `This user does not have acces to the roleplay with id=${id}`
-        );
-      }
-    })
-    .then((data) => {
-      const roleplay = data.dataValues;
-      const tags = roleplay.tags.map((t) => t.name);
-      roleplay.tags = tags;
-      return sendResponse(res, 200, `Got roleplay with id=${id}`, { roleplay });
-    })
-    .catch((err) => {
-      return sendResponse(res, status, err.message);
+  try {
+    const id = req.params.id;
+    const data = await Roleplay.findOne({
+      where: { id },
+      include: [
+        {
+          model: Tag,
+          attributes: ["name"],
+          through: {
+            attributes: [],
+          },
+        },
+      ],
     });
+    const roleplay = data.dataValues;
+    const tags = roleplay.tags.map((t) => t.name);
+    roleplay.tags = tags;
+    return sendResponse(res, 200, `Got roleplay with id=${id}`, { roleplay });
+  } catch (err) {
+    return sendResponse(res, status, err.message);
+  }
 };
 
 exports.getUserRoleplays = (req, res) => {
   const user = req.user.id;
+  if (!id) {
+    status = 400;
+    throw new Error("Need a roleplay id");
+  }
 
   User.findOne({
     where: { id: user },
@@ -479,8 +317,6 @@ exports.getUserRoleplays = (req, res) => {
     ],
   })
     .then((user) => {
-      console.log("USER ", user);
-
       if (user.dataValues.roleplays.length === 0) {
         return sendResponse(res, 400, "No roleplay were found");
       } else {
@@ -489,10 +325,8 @@ exports.getUserRoleplays = (req, res) => {
         rps.forEach((r) => {
           if (r.tags.length > 0) {
             const tags = r.tags.map((t) => t.name);
-            console.log("TAGS", tags);
             r.dataValues.tags = tags;
           }
-          console.log("ROLEPLAY", r);
           roleplays.push(r.dataValues);
         });
         return sendResponse(res, 200, "Found roleplays", { roleplays });
@@ -501,6 +335,103 @@ exports.getUserRoleplays = (req, res) => {
     .catch((err) => {
       return sendResponse(res, 500, err.message);
     });
+};
+
+exports.getRoleplayParticipants = async (req, res) => {
+  let status = 500;
+  try {
+    const { id } = req.params;
+    if (!id) {
+      status = 400;
+      throw new Error("Need a roleplay id");
+    }
+    const roleplay = await Roleplay.findOne({
+      where: { id },
+      include: [
+        {
+          model: User,
+          attributes: ["id", "name", "email"],
+          through: {
+            attributes: ["isMaster"],
+          },
+        },
+      ],
+    });
+    const participations = roleplay.dataValues.users.map((u) => {
+      return {
+        id: u.id,
+        name: u.name,
+        email: u.email,
+        isMaster: u.participation.isMaster,
+      };
+    });
+    return sendResponse(res, 200, "Got participants", participations);
+  } catch (err) {
+    return sendResponse(res, 500, err.message);
+  }
+};
+
+exports.addParticipantToRoleplay = async (req, res) => {
+  let status = 500;
+  try {
+    const { id, participantId } = req.body;
+    if (!participantId) {
+      status = 400;
+      throw new Error("Need a participant id");
+    }
+    await userExists(participantId);
+    const result = await Participation.findOrCreate({
+      where: {
+        user: participantId,
+        roleplay: id,
+      },
+      defaults: { user: participantId, roleplay: id },
+    });
+    const created = result[1];
+    if (created) {
+      return sendResponse(res, 200, "Participant added correctly.");
+    } else {
+      status = 400;
+      throw new Error("The given user already participates in the roleplay");
+    }
+  } catch (err) {
+    return sendResponse(res, status, err.message);
+  }
+};
+
+exports.removeParticipantFromRoleplay = async (req, res) => {
+  let status = 500;
+  try {
+    const { id, participantId } = req.body;
+    if (!participantId) {
+      status = 400;
+      throw new Error("Need a participant id");
+    }
+    await userExists(participantId);
+    if (participantId === req.user.id) {
+      status = 400;
+      throw new Error("Cannot removed the user creator");
+    }
+    const result = await Participation.destroy({
+      where: {
+        user: participantId,
+        roleplay: id,
+      },
+    });
+    if (result === 0) {
+      status = 400;
+      throw new Error("The given user does not participate in the roleplay");
+    }
+    return sendResponse(res, 200, "Participant removed correctly.");
+  } catch (err) {
+    return sendResponse(res, status, err.message);
+  }
+};
+
+const userExists = async (userId) => {
+  const user = await User.findOne({ where: { id: userId } });
+  if (user) return;
+  throw new Error(`User with id=${userId} does not exist`);
 };
 
 const validateCreation = (data) => {
