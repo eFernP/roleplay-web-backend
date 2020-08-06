@@ -10,14 +10,14 @@ const offer = (sequelize, Sequelize) => {
     //     key: "id",
     //   },
     // },
-    roleplay: {
-      allowNull: false,
-      type: Sequelize.INTEGER,
-      references: {
-        model: "roleplays",
-        key: "id",
-      },
-    },
+    // roleplay: {
+    //   allowNull: false,
+    //   type: Sequelize.INTEGER,
+    //   references: {
+    //     model: "roleplays",
+    //     key: "id",
+    //   },
+    // },
     message: {
       allowNull: false,
       type: Sequelize.TEXT,

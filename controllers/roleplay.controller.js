@@ -1,5 +1,5 @@
 const jwt = require("jsonwebtoken");
-const { Op, or } = require("sequelize");
+const { Op, or, Sequelize } = require("sequelize");
 const Joi = require("joi");
 
 const { ROLE_TYPES } = require("../constants");
@@ -58,7 +58,7 @@ exports.createRoleplay = (req, res) => {
           description: req.body.description,
           type: req.body.type,
           numParticipants: req.body.numParticipants,
-          creator: req.user.id,
+          creatorId: req.user.id,
         };
 
         if (req.file) {
@@ -111,7 +111,7 @@ exports.editRoleplay = async (req, res) => {
     }
 
     const rpInstance = await Roleplay.findOne({
-      where: { id, creator: userId },
+      where: { id, creatorId: userId },
     });
 
     if (rpInstance) {
@@ -146,6 +146,7 @@ exports.editRoleplay = async (req, res) => {
       roleplay = rp;
 
       if (tags && tags.length > 0) {
+        console.log("UPDATE TAAGS");
         await updateTags(tags, id);
       }
 
@@ -184,7 +185,6 @@ const updateTags = async (newTags, id) => {
     originalTags = roleplay.dataValues.tags;
   }
   arraysOfTags = compareTags(originalTags, newTags);
-
   if (arraysOfTags.tagsToRemove.length > 0) {
     await RoleplayTag.destroy({
       where: { tag: arraysOfTags.tagsToRemove, roleplay: id },
@@ -204,10 +204,9 @@ const updateTags = async (newTags, id) => {
     } else {
       await Tag.destroy({ where: { id: arraysOfTags.tagsToRemove } });
     }
-
-    if (arraysOfTags.tagsToAdd.length > 0) {
-      await addTags(arraysOfTags.tagsToAdd, id);
-    }
+  }
+  if (arraysOfTags.tagsToAdd.length > 0) {
+    await addTags(arraysOfTags.tagsToAdd, id);
   }
 };
 
@@ -226,7 +225,7 @@ const addTags = (tags, roleplay) => {
       return RoleplayTag.create({ roleplay, tag: tag.id });
     });
   });
-  return Promise.all(promises).then(() => console.log("added tags"));
+  return Promise.all(promises);
 };
 
 const getMissingTags = (tags, relations) => {
@@ -443,6 +442,93 @@ exports.deleteRoleplay = async (req, res) => {
       throw new Error("There is no roleplay with this id.");
     }
     return sendResponse(res, 200, "Roleplay removed correctly.");
+  } catch (err) {
+    return sendResponse(res, status, err.message);
+  }
+};
+
+exports.getAllRoleplays = async (req, res) => {
+  let status = 500;
+  let userId = req.user && !req.user.expired ? req.user.id : null;
+  let expired = req.user && req.user.expired ? true : false;
+  try {
+    //(ordenados del más reciente al menos,
+    //con el número de participantes actuales y el número de peticiones,
+    //el nombre del creador y un campo indicando si participa en el rol o no)
+    //return sendResponse(res, 200, "Roleplay removed correctly.");
+    const data = await Roleplay.findAll({
+      // attributes: {
+      //   include: [
+      //     [
+      //       Sequelize.fn("COUNT", Sequelize.col("users.id")),
+      //       "numCurrentParticipants",
+      //     ],
+      //   ],
+      // },
+      order: [["createdAt", "DESC"]],
+      include: [
+        {
+          model: User,
+          attributes: ["id"],
+          through: {
+            attributes: [],
+          },
+        },
+        {
+          model: User,
+          as: "creator",
+          attributes: ["id", "name"],
+        },
+        {
+          model: Tag,
+          attributes: ["name"],
+          through: {
+            attributes: [],
+          },
+        },
+      ],
+      //group: ["Roleplay.id", "users.id"],
+    });
+
+    if (data.length === 0) {
+      return sendResponse(
+        res,
+        status,
+        "Any roleplay has been found",
+        roleplays
+      );
+    } else {
+      console.log("DATA", data);
+      const roleplays = data.map((r) => {
+        let isParticipating = false;
+        let tags = [];
+
+        if (userId) {
+          r.users.forEach((u) => {
+            if (u.id === userId) isParticipating = true;
+          });
+        }
+        if (r.tags) tags = r.tags.map((t) => t.name);
+
+        return {
+          id: r.id,
+          name: r.name,
+          description: r.description,
+          creator: r.creator.name,
+          numParticipants: r.numParticipants,
+          numCurrentParticipants: r.users.length,
+          tags,
+          isParticipating,
+          background: r.background,
+          timestamp: r.createdAt,
+        };
+      });
+
+      return sendResponse(res, 200, "Got roleplays", {
+        userExpired: expired,
+        roleplays,
+      });
+    }
   } catch (err) {
     return sendResponse(res, status, err.message);
   }

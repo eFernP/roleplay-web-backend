@@ -3,22 +3,22 @@ const { PETITION_STATE_TYPES } = require("../constants");
 
 const petition = (sequelize, Sequelize) => {
   const Petition = sequelize.define("petition", {
-    user: {
-      allowNull: false,
-      type: Sequelize.INTEGER,
-      references: {
-        model: "users",
-        key: "id",
-      },
-    },
-    roleplay: {
-      allowNull: false,
-      type: Sequelize.INTEGER,
-      references: {
-        model: "roleplays",
-        key: "id",
-      },
-    },
+    // user: {
+    //   allowNull: false,
+    //   type: Sequelize.INTEGER,
+    //   references: {
+    //     model: "users",
+    //     key: "id",
+    //   },
+    // },
+    // roleplay: {
+    //   allowNull: false,
+    //   type: Sequelize.INTEGER,
+    //   references: {
+    //     model: "roleplays",
+    //     key: "id",
+    //   },
+    // },
     message: {
       allowNull: false,
       type: Sequelize.TEXT,

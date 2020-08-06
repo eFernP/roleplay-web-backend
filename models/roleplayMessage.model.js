@@ -3,22 +3,22 @@ const { MESSAGE_TYPES } = require("../constants");
 
 const roleplayMessage = (sequelize, Sequelize) => {
   const RoleplayMessage = sequelize.define("roleplayMessage", {
-    sender: {
-      allowNull: false,
-      type: Sequelize.INTEGER,
-      references: {
-        model: "users",
-        key: "id",
-      },
-    },
-    roleplay: {
-      allowNull: false,
-      type: Sequelize.INTEGER,
-      references: {
-        model: "roleplays",
-        key: "id",
-      },
-    },
+    // sender: {
+    //   allowNull: false,
+    //   type: Sequelize.INTEGER,
+    //   references: {
+    //     model: "users",
+    //     key: "id",
+    //   },
+    // },
+    // roleplay: {
+    //   allowNull: false,
+    //   type: Sequelize.INTEGER,
+    //   references: {
+    //     model: "roleplays",
+    //     key: "id",
+    //   },
+    // },
     message: {
       allowNull: false,
       type: Sequelize.TEXT,

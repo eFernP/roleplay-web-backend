@@ -3,6 +3,7 @@ const auth = require("../middleware/auth");
 const upload = require("../middleware/imageStorage");
 const uploadCloud = require("../config/cloudinary.config");
 const { isParticipant, isOwner } = require("../middleware/permissions.js");
+const optionalAuth = require("../middleware/optionalAuth.js");
 var router = require("express").Router();
 
 //router.get("/current", auth, users.getUser);
@@ -45,5 +46,8 @@ router.get(
 
 //token, id (del roleplay)
 router.delete("/removeroleplay", auth, isOwner, roleplays.deleteRoleplay);
+
+//token
+router.get("/all", optionalAuth, roleplays.getAllRoleplays);
 
 module.exports = router;

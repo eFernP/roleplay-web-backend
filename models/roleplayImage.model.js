@@ -2,22 +2,22 @@ const Joi = require("joi");
 
 const roleplayImage = (sequelize, Sequelize) => {
   const RoleplayImage = sequelize.define("roleplayImage", {
-    sender: {
-      allowNull: false,
-      type: Sequelize.INTEGER,
-      references: {
-        model: "users",
-        key: "id",
-      },
-    },
-    roleplay: {
-      allowNull: false,
-      type: Sequelize.INTEGER,
-      references: {
-        model: "roleplays",
-        key: "id",
-      },
-    },
+    // sender: {
+    //   allowNull: false,
+    //   type: Sequelize.INTEGER,
+    //   references: {
+    //     model: "users",
+    //     key: "id",
+    //   },
+    // },
+    // roleplay: {
+    //   allowNull: false,
+    //   type: Sequelize.INTEGER,
+    //   references: {
+    //     model: "roleplays",
+    //     key: "id",
+    //   },
+    // },
     url: {
       allowNull: false,
       type: Sequelize.STRING,

@@ -100,8 +100,9 @@ db.models.user.belongsToMany(db.models.roleplay, {
 //   foreignKey: "character",
 // });
 
-db.models.user.hasOne(db.models.roleplay, {
-  foreignKey: "creator",
+db.models.roleplay.belongsTo(db.models.user, {
+  foreignKey: "creatorId",
+  as: "creator",
 });
 
 db.models.roleplay.belongsToMany(db.models.tag, {
@@ -114,40 +115,42 @@ db.models.tag.belongsToMany(db.models.roleplay, {
   through: db.models.roleplayTag,
 });
 
-db.models.user.hasOne(db.models.character, {
-  foreignKey: "user",
+db.models.character.belongsTo(db.models.user, {
+  foreignKey: "userId",
 });
 
-db.models.roleplay.hasOne(db.models.character, {
-  foreignKey: "roleplay",
+db.models.character.belongsTo(db.models.roleplay, {
+  foreignKey: "roleplayId",
 });
 
-db.models.roleplay.hasOne(db.models.offer, {
-  foreignKey: "roleplay",
+db.models.offer.belongsTo(db.models.roleplay, {
+  foreignKey: "roleplayId",
 });
 
-db.models.user.hasOne(db.models.petition, {
-  foreignKey: "user",
+db.models.petition.belongsTo(db.models.user, {
+  foreignKey: "userId",
 });
 
-db.models.roleplay.hasOne(db.models.petition, {
-  foreignKey: "roleplay",
+db.models.petition.belongsTo(db.models.roleplay, {
+  foreignKey: "roleplayId",
 });
 
-db.models.user.hasOne(db.models.roleplayImage, {
-  foreignKey: "sender",
+db.models.roleplayImage.belongsTo(db.models.user, {
+  foreignKey: "senderId",
+  alias: "sender",
 });
 
-db.models.roleplay.hasOne(db.models.roleplayImage, {
-  foreignKey: "roleplay",
+db.models.roleplayImage.belongsTo(db.models.roleplay, {
+  foreignKey: "roleplayId",
 });
 
-db.models.user.hasOne(db.models.roleplayMessage, {
-  foreignKey: "sender",
+db.models.roleplayMessage.belongsTo(db.models.user, {
+  foreignKey: "senderId",
+  alias: "sender",
 });
 
-db.models.roleplay.hasOne(db.models.roleplayMessage, {
-  foreignKey: "roleplay",
+db.models.roleplayMessage.belongsTo(db.models.roleplay, {
+  foreignKey: "roleplayId",
 });
 
 exports.db = db;

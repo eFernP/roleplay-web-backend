@@ -2,15 +2,15 @@ const Joi = require("joi");
 
 const characterImage = (sequelize, Sequelize) => {
   const CharacterImage = sequelize.define("characterImage", {
-    character: {
-      allowNull: false,
-      type: Sequelize.INTEGER,
-      references: {
-        model: "characters",
-        key: "id",
-      },
-      unique: true,
-    },
+    // character: {
+    //   allowNull: false,
+    //   type: Sequelize.INTEGER,
+    //   references: {
+    //     model: "characters",
+    //     key: "id",
+    //   },
+    //   unique: true,
+    // },
     url: {
       allowNull: false,
       type: Sequelize.STRING,
