@@ -40,6 +40,11 @@ exports.isOwner = async (req, res, next) => {
       where: { id },
     });
 
+    if (!roleplay) {
+      status = 400;
+      throw new Error(`There is no roleplay with the id ${id}`);
+    }
+
     if (roleplay.dataValues.creator === req.user.id) {
       next();
     } else {

@@ -290,14 +290,14 @@ exports.getRoleplayById = async (req, res) => {
 };
 
 exports.getUserRoleplays = (req, res) => {
-  const user = req.user.id;
+  const id = req.user.id;
   if (!id) {
     status = 400;
     throw new Error("Need a roleplay id");
   }
 
   User.findOne({
-    where: { id: user },
+    where: { id },
     include: [
       {
         model: Roleplay,
@@ -423,6 +423,26 @@ exports.removeParticipantFromRoleplay = async (req, res) => {
       throw new Error("The given user does not participate in the roleplay");
     }
     return sendResponse(res, 200, "Participant removed correctly.");
+  } catch (err) {
+    return sendResponse(res, status, err.message);
+  }
+};
+
+exports.deleteRoleplay = async (req, res) => {
+  let status = 500;
+  const id = req.body.id;
+  if (!id) {
+    status = 400;
+    throw new Error("Need a roleplay id");
+  }
+  try {
+    const result = await Roleplay.destroy({ where: { id } });
+    console.log("RESULT ", result);
+    if (result === 0) {
+      status = 400;
+      throw new Error("There is no roleplay with this id.");
+    }
+    return sendResponse(res, 200, "Roleplay removed correctly.");
   } catch (err) {
     return sendResponse(res, status, err.message);
   }

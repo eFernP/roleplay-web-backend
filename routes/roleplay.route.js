@@ -43,4 +43,7 @@ router.get(
   roleplays.getRoleplayParticipants
 );
 
+//token, id (del roleplay)
+router.delete("/removeroleplay", auth, isOwner, roleplays.deleteRoleplay);
+
 module.exports = router;
